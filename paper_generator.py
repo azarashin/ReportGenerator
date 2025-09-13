@@ -40,9 +40,13 @@ class PaperGenerator:
         self._abstract = 'no abstract...'
         self._main_texts = []
         self._refs = []
+        self._double_colmuns = False
         self._chapter_numbers = [0, 0, 0, 0, 0, 0, 0, 0]
 
         # --- 日本語フォント登録 ---
+
+    def set_double_column(self, mode: bool):
+        self._double_colmuns = mode
 
     def set_title(self, title: str):
         self._title = title 
@@ -94,7 +98,11 @@ class PaperGenerator:
 
         story = self._add_title(story)
 
-        story.append(NextPageTemplate('BodyPages'))
+        if self._double_colmuns:
+            story.append(NextPageTemplate('BodyPagesInDoubleColumn'))
+        else:
+            story.append(NextPageTemplate('BodyPagesInSingleColumn'))
+
         story.append(PageBreak())
 
         story = self._add_body(story)
@@ -160,18 +168,27 @@ class PaperGenerator:
         )
         abstract_ypos = 100
         abstract_height = 200
-        frame_width = (page_width - 2*margin - gap) / 2
         frame_abstract = Frame(margin, abstract_ypos, page_width - 2*margin, abstract_height, id='abstract')
         template_first = PageTemplate(id='FirstPage',
                                     frames=[frame_title, frame_abstract])
 
         # -----------------------
+        # 2ページ目以降：1カラム本文
+        # -----------------------
+        frame_width_in_single = (page_width - 2*margin - gap)
+        frame_all_in_single = Frame(margin, margin, frame_width_in_single, page_height - 2*margin, id='all_in_single')
+        template_body_in_single = PageTemplate(id='BodyPagesInSingleColumn',
+                                    frames=[frame_all_in_single],
+                                    onPage=self.add_page_number)   # ★ ページ番号追加
+
+        # -----------------------
         # 2ページ目以降：2カラム本文
         # -----------------------
-        frame_left_all = Frame(margin, margin, frame_width, page_height - 2*margin, id='left_all')
-        frame_right_all = Frame(margin + frame_width + gap, margin, frame_width, page_height - 2*margin, id='right_all')
-        template_body = PageTemplate(id='BodyPages',
-                                    frames=[frame_left_all, frame_right_all],
+        frame_width_in_double = (page_width - 2*margin - gap) / 2
+        frame_left_all_in_double = Frame(margin, margin, frame_width_in_double, page_height - 2*margin, id='left_all')
+        frame_right_all_in_double = Frame(margin + frame_width_in_double + gap, margin, frame_width_in_double, page_height - 2*margin, id='right_all')
+        template_body_in_double = PageTemplate(id='BodyPagesInDoubleColumn',
+                                    frames=[frame_left_all_in_double, frame_right_all_in_double],
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
         # -----------------------
@@ -182,7 +199,7 @@ class PaperGenerator:
                                     frames=[frame_refs],
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
-        doc.addPageTemplates([template_first, template_body, template_refs])
+        doc.addPageTemplates([template_first, template_body_in_single, template_body_in_double, template_refs])
         return doc
 
 
@@ -300,5 +317,8 @@ if __name__ == '__main__':
 
     pg.add_author('azarashin', 'pit-creation')
     pg.add_author('azarashinX', 'pnc')
+
+    pg.set_double_column(True)
+
     pg.run(path)
 
