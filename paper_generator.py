@@ -161,12 +161,12 @@ class PaperGenerator:
         toc.levelStyles = [
             ParagraphStyle('toc_level1', fontName=self._font, fontSize=12, leftIndent=20, firstLineIndent=-20, spaceBefore=5),
             ParagraphStyle('toc_level2', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
-            ParagraphStyle('toc_level3', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
-            ParagraphStyle('toc_level4', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
-            ParagraphStyle('toc_level5', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
-            ParagraphStyle('toc_level6', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
-            ParagraphStyle('toc_level7', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
-            ParagraphStyle('toc_level8', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level3', fontName=self._font, fontSize=10, leftIndent=50, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level4', fontName=self._font, fontSize=10, leftIndent=60, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level5', fontName=self._font, fontSize=10, leftIndent=70, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level6', fontName=self._font, fontSize=10, leftIndent=80, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level7', fontName=self._font, fontSize=10, leftIndent=90, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level8', fontName=self._font, fontSize=10, leftIndent=100, firstLineIndent=-20, spaceBefore=2),
         ]
 
         story.append(toc)
