@@ -30,6 +30,7 @@ class PaperGenerator:
         self._abstract = 'no abstract...'
         self._main_texts = []
         self._refs = []
+        self._chapter_numbers = [0, 0, 0, 0, 0, 0, 0, 0]
 
         # --- 日本語フォント登録 ---
 
@@ -43,7 +44,14 @@ class PaperGenerator:
         self._main_texts.append(MainText(-1, sentence))
 
     def add_chapter(self, chapter: str, chapter_rank = 0):
-        self._main_texts.append(MainText(chapter_rank, chapter))
+        self._chapter_numbers[chapter_rank] += 1
+        self._main_texts.append(MainText(chapter_rank, f'{self._get_chapter_number(chapter_rank)}. {chapter}'))
+        for i in range(chapter_rank+1, len(self._chapter_numbers)):
+            self._chapter_numbers[i] = 0
+    
+    def _get_chapter_number(self, chapter_rank):
+        return '.'.join([str(d) for d in self._chapter_numbers[:chapter_rank + 1]])
+        
 
     def add_ref(self, author: str, title: str, year: int = None):
         self._refs.append(Reference(author, title, year))
@@ -72,6 +80,18 @@ class PaperGenerator:
         body_style = ParagraphStyle(
             'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
         )
+
+        chapter_styles = [
+            ParagraphStyle('CapterRank1', fontName=self._font, fontSize=15, leading=17, spaceBefore=10, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank2', fontName=self._font, fontSize=14, leading=16, spaceBefore=9, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank3', fontName=self._font, fontSize=13, leading=15, spaceBefore=8, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank4', fontName=self._font, fontSize=12, leading=14, spaceBefore=7, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank5', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank6', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank7', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
+        ]
+
         reference_style = ParagraphStyle(
             'Reference', fontName=self._font, fontSize=9, leading=11
         )
@@ -131,7 +151,10 @@ class PaperGenerator:
         story.append(NextPageTemplate('BodyPages'))
         # 本文（1ページ目下部2段組から開始）
         for main_text in self._main_texts:
-            story.append(Paragraph(main_text.text, body_style))
+            if main_text.rank < 0 or main_text.rank >= len(chapter_styles):
+                story.append(Paragraph(main_text.text, body_style))
+            else:
+                story.append(Paragraph(main_text.text, chapter_styles[main_text.rank]))
 
         if len(self._refs) > 0:
             # 最後のページ：引用文献
@@ -155,13 +178,63 @@ if __name__ == '__main__':
     )
     pg.set_title('論文タイトル：PythonによるPDF論文自動生成')
     pg.set_abstract(abstract_text)
-    for i in range(40):
+    pg.add_chapter("チャプターA", 0)
+    for i in range(10):
         pg.add_sentence(
             f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
             "論文本文として長い文章が続くことを想定しています。"
             "----------------------------------------------"
             "----------------------------------------------"
             "----------------------------------------------")
+
+    pg.add_chapter("チャプターB", 0)
+    pg.add_chapter("チャプターBA", 1)
+    for i in range(10):
+        pg.add_sentence(
+            f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
+            "論文本文として長い文章が続くことを想定しています。"
+            "----------------------------------------------"
+            "----------------------------------------------"
+            "----------------------------------------------")
+
+    pg.add_chapter("チャプターBB", 1)
+    for i in range(10):
+        pg.add_sentence(
+            f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
+            "論文本文として長い文章が続くことを想定しています。"
+            "----------------------------------------------"
+            "----------------------------------------------"
+            "----------------------------------------------")
+
+    pg.add_chapter("チャプターBBA", 2)
+    for i in range(10):
+        pg.add_sentence(
+            f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
+            "論文本文として長い文章が続くことを想定しています。"
+            "----------------------------------------------"
+            "----------------------------------------------"
+            "----------------------------------------------")
+
+    pg.add_chapter("チャプターBC", 2)
+    pg.add_chapter("チャプターBCA", 3)
+    pg.add_chapter("チャプターBCAA", 4)
+    pg.add_chapter("チャプターBCAAA", 5)
+    pg.add_chapter("チャプターBCAAAA", 6)
+    for i in range(10):
+        pg.add_sentence(
+            f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
+            "論文本文として長い文章が続くことを想定しています。"
+            "----------------------------------------------"
+            "----------------------------------------------"
+            "----------------------------------------------")
+
+    pg.add_chapter("チャプターC", 1)
+    pg.add_chapter("チャプターCA", 2)
+    pg.add_chapter("チャプターCAA", 3)
+    pg.add_chapter("チャプターCB", 2)
+    pg.add_chapter("チャプターCBA", 3)
+    pg.add_chapter("チャプターCBAA", 4)
+
 
     pg.add_ref("Smith J.", "ReportLab Documentation", 2023)
     pg.add_ref("Ogata S.", "Automatic Paper Generation with Python", 2025)
