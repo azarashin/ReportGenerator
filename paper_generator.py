@@ -67,7 +67,7 @@ class PaperGenerator:
             'Title', fontName=self._font, fontSize=24, leading=28, alignment=1, spaceAfter=20
         )
         abstract_style = ParagraphStyle(
-            'Abstract', fontName=self._font, fontSize=10, leading=14, spaceAfter=20
+            'Abstract', fontName=self._font, fontSize=8, leading=10, spaceAfter=20, alignment=1, leftIndent=80, rightIndent=80
         )
         body_style = ParagraphStyle(
             'Body', fontName=self._font, fontSize=12, leading=14
