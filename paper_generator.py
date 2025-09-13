@@ -7,6 +7,14 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 
+class Author:
+    def __init__(self, name: str, organization: str):
+        self.name = name
+        self.organization = organization
+
+    def __str__(self):
+        return f'{self.name}, {self.organization}'
+
 class Reference:
     def __init__(self, author: str, title: str, year: int = None):
         self.author = author
@@ -27,6 +35,8 @@ class PaperGenerator:
     def __init__(self, font='HeiseiMin-W3'):
         self._font = font
         self._title = 'NO TITLE...'
+        self._sub_title = None
+        self._authors = []
         self._abstract = 'no abstract...'
         self._main_texts = []
         self._refs = []
@@ -36,6 +46,12 @@ class PaperGenerator:
 
     def set_title(self, title: str):
         self._title = title 
+
+    def set_sub_title(self, sub_title : str):
+        self._sub_title = sub_title 
+
+    def add_author(self, name: str, organization: str):
+        self._authors.append(Author(name, organization))
 
     def set_abstract(self, abstract: str):
         self._abstract = abstract
@@ -74,8 +90,20 @@ class PaperGenerator:
         title_style = ParagraphStyle(
             'Title', fontName=self._font, fontSize=24, leading=28, alignment=1, spaceAfter=20
         )
-        abstract_style = ParagraphStyle(
-            'Abstract', fontName=self._font, fontSize=8, leading=10, spaceAfter=20, alignment=1, leftIndent=80, rightIndent=80
+        sub_title_style = ParagraphStyle(
+            'SubTitle', fontName=self._font, fontSize=20, leading=28, alignment=1, spaceAfter=20
+        )
+
+        authors_style = ParagraphStyle(
+            'Authors', fontName=self._font, fontSize=12, leading=14, alignment=1, spaceAfter=5
+        )
+
+
+        abstract_title_style = ParagraphStyle(
+            'Abstract', fontName=self._font, fontSize=14, leading=16, spaceAfter=20, alignment=1, leftIndent=80, rightIndent=80
+        )
+        abstract_body_style = ParagraphStyle(
+            'Abstract', fontName=self._font, fontSize=10, leading=12, alignment=1, leftIndent=80, rightIndent=80
         )
         body_style = ParagraphStyle(
             'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
@@ -105,21 +133,21 @@ class PaperGenerator:
         # -----------------------
         # 1ページ目：上部1カラム + 下部2カラム
         # -----------------------
-        top_height = 180
-        frame_top = Frame(
+        top_ypos = A4[1] * 0.2
+        top_height = A4[1] * 0.3
+        frame_title = Frame(
             margin,
-            page_height - margin - top_height,
+            page_height - margin - top_height - top_ypos,
             page_width - 2*margin,
             top_height,
             id='top'
         )
-        bottom_height = page_height - 2*margin - top_height
+        abstract_ypos = 100
+        abstract_height = 200
         frame_width = (page_width - 2*margin - gap) / 2
-        frame_left = Frame(margin, margin, frame_width, bottom_height, id='left')
-        frame_right = Frame(margin + frame_width + gap, margin, frame_width, bottom_height, id='right')
+        frame_abstract = Frame(margin, abstract_ypos, page_width - 2*margin, abstract_height, id='abstract')
         template_first = PageTemplate(id='FirstPage',
-                                    frames=[frame_top, frame_left, frame_right],
-                                    onPage=self.add_page_number)   # ★ ページ番号追加
+                                    frames=[frame_title, frame_abstract])
 
         # -----------------------
         # 2ページ目以降：2カラム本文
@@ -142,13 +170,23 @@ class PaperGenerator:
 
         story = []
         # タイトル
+        story.append(NextPageTemplate('FirstPage'))
+
         story.append(Paragraph(self._title, title_style))
+        if self._sub_title:
+            story.append(Paragraph(f' - {self._sub_title} - ', sub_title_style))
 
-        story.append(Paragraph(self._abstract, abstract_style))
+        for author in self._authors:
+            story.append(Paragraph(str(author), authors_style))
 
-        # ★ 上部フレームを明示的に終了させる
         story.append(FrameBreak())
+        
+        story.append(Paragraph('要旨', abstract_title_style))
+        story.append(Paragraph(self._abstract, abstract_body_style))
         story.append(NextPageTemplate('BodyPages'))
+        story.append(PageBreak())
+
+
         # 本文（1ページ目下部2段組から開始）
         for main_text in self._main_texts:
             if main_text.rank < 0 or main_text.rank >= len(chapter_styles):
@@ -177,6 +215,7 @@ if __name__ == '__main__':
         "ReportLabを用いてタイトルページから本文、引用文献まで自動生成する手法を示します。"
     )
     pg.set_title('論文タイトル：PythonによるPDF論文自動生成')
+    pg.set_sub_title('サブタイトル')
     pg.set_abstract(abstract_text)
     pg.add_chapter("チャプターA", 0)
     for i in range(10):
@@ -239,5 +278,8 @@ if __name__ == '__main__':
     pg.add_ref("Smith J.", "ReportLab Documentation", 2023)
     pg.add_ref("Ogata S.", "Automatic Paper Generation with Python", 2025)
     pg.add_ref("Example Author", "Sample References in ReportLab", 2024)
+
+    pg.add_author('azarashin', 'pit-creation')
+    pg.add_author('azarashinX', 'pnc')
     pg.run(path)
 
