@@ -7,10 +7,46 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 
+class Reference:
+    def __init__(self, author: str, title: str, year: int = None):
+        self.author = author
+        self.title = title
+        self.year = year
+
+    def __str__(self):
+        if self.year == None:
+            return f'{self.author}, {self.title}.'
+        return f'{self.author}, {self.title}, {self.year}.'
+
+class MainText:
+    def __init__(self, rank: int, text: str):
+        self.rank = rank
+        self.text = text
+
 class PaperGenerator:
     def __init__(self, font='HeiseiMin-W3'):
         self._font = font
+        self._title = 'NO TITLE...'
+        self._abstract = 'no abstract...'
+        self._main_texts = []
+        self._refs = []
+
         # --- 日本語フォント登録 ---
+
+    def set_title(self, title: str):
+        self._title = title 
+
+    def set_abstract(self, abstract: str):
+        self._abstract = abstract
+
+    def add_sentence(self, sentence: str):
+        self._main_texts.append(MainText(-1, sentence))
+
+    def add_chapter(self, chapter: str, chapter_rank = 0):
+        self._main_texts.append(MainText(chapter_rank, chapter))
+
+    def add_ref(self, author: str, title: str, year: int = None):
+        self._refs.append(Reference(author, title, year))
 
     # --- ページ番号を描画する関数 ---
     def add_page_number(self, canvas, doc):
@@ -86,39 +122,24 @@ class PaperGenerator:
 
         story = []
         # タイトル
-        story.append(Paragraph("論文タイトル：PythonによるPDF論文自動生成", title_style))
-        # Abstract
-        abstract_text = (
-            "ここに論文の概要(Abstract)を記載します。"
-            "この部分は1段組みで小さな文字サイズです。"
-            "ReportLabを用いてタイトルページから本文、引用文献まで自動生成する手法を示します。"
-        )
-        story.append(Paragraph(abstract_text, abstract_style))
+        story.append(Paragraph(self._title, title_style))
+
+        story.append(Paragraph(self._abstract, abstract_style))
 
         # ★ 上部フレームを明示的に終了させる
         story.append(FrameBreak())
         story.append(NextPageTemplate('BodyPages'))
         # 本文（1ページ目下部2段組から開始）
-        for i in range(40):
-            story.append(Paragraph(
-                f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
-                "論文本文として長い文章が続くことを想定しています。"
-                "----------------------------------------------"
-                "----------------------------------------------"
-                "----------------------------------------------",
-                body_style
-            ))
+        for main_text in self._main_texts:
+            story.append(Paragraph(main_text.text, body_style))
 
-        # 最後のページ：引用文献
-        story.append(NextPageTemplate('References'))
-        story.append(PageBreak())
-        refs = [
-            "1. Smith J., ReportLab Documentation, 2023.",
-            "2. Ogata S., Automatic Paper Generation with Python, 2025.",
-            "3. Example Author, Sample References in ReportLab, 2024."
-        ]
-        for ref in refs:
-            story.append(Paragraph(ref, reference_style))
+        if len(self._refs) > 0:
+            # 最後のページ：引用文献
+            story.append(NextPageTemplate('References'))
+            story.append(PageBreak())
+
+            for i in range(len(self._refs)):
+                story.append(Paragraph(f'{i + 1}. {self._refs[i]}', reference_style))
 
         doc.build(story)
 
@@ -126,5 +147,24 @@ class PaperGenerator:
 if __name__ == '__main__':
     path="sample_paper_with_pagenum.pdf"
     pg = PaperGenerator()
+    # Abstract
+    abstract_text = (
+        "ここに論文の概要(Abstract)を記載します。"
+        "この部分は1段組みで小さな文字サイズです。"
+        "ReportLabを用いてタイトルページから本文、引用文献まで自動生成する手法を示します。"
+    )
+    pg.set_title('論文タイトル：PythonによるPDF論文自動生成')
+    pg.set_abstract(abstract_text)
+    for i in range(40):
+        pg.add_sentence(
+            f"{i+1}段落目：これは2段組み本文のサンプルテキストです。"
+            "論文本文として長い文章が続くことを想定しています。"
+            "----------------------------------------------"
+            "----------------------------------------------"
+            "----------------------------------------------")
+
+    pg.add_ref("Smith J.", "ReportLab Documentation", 2023)
+    pg.add_ref("Ogata S.", "Automatic Paper Generation with Python", 2025)
+    pg.add_ref("Example Author", "Sample References in ReportLab", 2024)
     pg.run(path)
 
