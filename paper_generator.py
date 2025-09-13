@@ -6,6 +6,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.platypus.tableofcontents import TableOfContents
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.units import cm
 
 class Author:
     def __init__(self, name: str, organization: str):
@@ -30,6 +33,36 @@ class MainText:
     def __init__(self, rank: int, text: str):
         self.rank = rank
         self.text = text
+
+class MyDocTemplate(BaseDocTemplate):
+
+    def __init__(self, filename, **kw):
+        self.allowSplitting = 0
+        BaseDocTemplate.__init__(self, filename, **kw)
+#        template = PageTemplate('normal', [Frame(2.5*cm, 2.5*cm, 15*cm, 25*cm, id='F1')])
+#        self.addPageTemplates(template)
+
+    def afterFlowable(self, flowable):
+        "Registers TOC entries."
+        if flowable.__class__.__name__ == 'Paragraph':
+            text = flowable.getPlainText()
+            style = flowable.style.name
+            if style == 'CapterRank1':
+                self.notify('TOCEntry', (0, text, self.page))
+            if style == 'CapterRank2':
+                self.notify('TOCEntry', (1, text, self.page))
+            if style == 'CapterRank3':
+                self.notify('TOCEntry', (2, text, self.page))
+            if style == 'CapterRank4':
+                self.notify('TOCEntry', (3, text, self.page))
+            if style == 'CapterRank5':
+                self.notify('TOCEntry', (4, text, self.page))
+            if style == 'CapterRank6':
+                self.notify('TOCEntry', (5, text, self.page))
+            if style == 'CapterRank7':
+                self.notify('TOCEntry', (6, text, self.page))
+            if style == 'CapterRank8':
+                self.notify('TOCEntry', (7, text, self.page))
 
 class PaperGenerator:
     def __init__(self, font='HeiseiMin-W3'):
@@ -90,13 +123,17 @@ class PaperGenerator:
     def run(self, path: str):
         pdfmetrics.registerFont(UnicodeCIDFont(self._font))
 
-        doc = BaseDocTemplate(path, pagesize=A4)
+        doc = MyDocTemplate(path, pagesize=A4)
 
         doc = self._setup_template(doc)
 
         story = []
 
         story = self._add_title(story)
+
+        story.append(NextPageTemplate('TableOfContents'))
+        story.append(PageBreak())
+        story = self._add_table_of_contents(story)
 
         if self._double_colmuns:
             story.append(NextPageTemplate('BodyPagesInDoubleColumn'))
@@ -112,7 +149,28 @@ class PaperGenerator:
 
         story = self._add_reference(story)
 
-        doc.build(story)
+        doc.multiBuild(story)
+
+    def _add_table_of_contents(self, story):
+        style_toc = ParagraphStyle(name='TOCTitle', fontName=self._font,
+                          fontSize=18, alignment=TA_CENTER, spaceAfter=20)
+
+        story.append(Paragraph("目次", style_toc))
+        toc = TableOfContents()
+        # TOCのスタイルをカスタマイズ
+        toc.levelStyles = [
+            ParagraphStyle('toc_level1', fontName=self._font, fontSize=12, leftIndent=20, firstLineIndent=-20, spaceBefore=5),
+            ParagraphStyle('toc_level2', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level3', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level4', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level5', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level6', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level7', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+            ParagraphStyle('toc_level8', fontName=self._font, fontSize=10, leftIndent=40, firstLineIndent=-20, spaceBefore=2),
+        ]
+
+        story.append(toc)
+        return story
 
     def _add_reference(self, story):
         reference_style = ParagraphStyle(
@@ -131,14 +189,14 @@ class PaperGenerator:
         )
 
         chapter_styles = [
-            ParagraphStyle('CapterRank1', fontName=self._font, fontSize=15, leading=17, spaceBefore=10, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank2', fontName=self._font, fontSize=14, leading=16, spaceBefore=9, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank3', fontName=self._font, fontSize=13, leading=15, spaceBefore=8, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank4', fontName=self._font, fontSize=12, leading=14, spaceBefore=7, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank5', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank6', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank7', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
-            ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
+            ParagraphStyle('CapterRank1', fontName=self._font, fontSize=15, leading=17, spaceBefore=10, spaceAfter=5, leftIndent=10, outlineLevel=0), 
+            ParagraphStyle('CapterRank2', fontName=self._font, fontSize=14, leading=16, spaceBefore=9, spaceAfter=5, leftIndent=10, outlineLevel=1), 
+            ParagraphStyle('CapterRank3', fontName=self._font, fontSize=13, leading=15, spaceBefore=8, spaceAfter=5, leftIndent=10, outlineLevel=2), 
+            ParagraphStyle('CapterRank4', fontName=self._font, fontSize=12, leading=14, spaceBefore=7, spaceAfter=5, leftIndent=10, outlineLevel=3), 
+            ParagraphStyle('CapterRank5', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=4), 
+            ParagraphStyle('CapterRank6', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=5), 
+            ParagraphStyle('CapterRank7', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=6), 
+            ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=7), 
         ]
 
         # 本文（1ページ目下部2段組から開始）
@@ -169,8 +227,19 @@ class PaperGenerator:
         abstract_ypos = 100
         abstract_height = 200
         frame_abstract = Frame(margin, abstract_ypos, page_width - 2*margin, abstract_height, id='abstract')
-        template_first = PageTemplate(id='FirstPage',
+        template_title = PageTemplate(id='FirstPage',
                                     frames=[frame_title, frame_abstract])
+
+
+
+        # -----------------------
+        # 目次
+        # -----------------------
+        frame_width_in_toc = (page_width - 2*margin - gap)
+        frame_all_in_toc = Frame(margin, margin, frame_width_in_toc, page_height - 2*margin, id='table_of_contents')
+        template_body_in_toc = PageTemplate(id='TableOfContents',
+                                    frames=[frame_all_in_toc],
+                                    onPage=self.add_page_number)   # ★ ページ番号追加
 
         # -----------------------
         # 2ページ目以降：1カラム本文
@@ -199,7 +268,7 @@ class PaperGenerator:
                                     frames=[frame_refs],
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
-        doc.addPageTemplates([template_first, template_body_in_single, template_body_in_double, template_refs])
+        doc.addPageTemplates([template_title, template_body_in_toc, template_body_in_single, template_body_in_double, template_refs])
         return doc
 
 
@@ -321,4 +390,5 @@ if __name__ == '__main__':
     pg.set_double_column(True)
 
     pg.run(path)
+
 
