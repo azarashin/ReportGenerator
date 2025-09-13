@@ -55,7 +55,7 @@ class PaperGenerator:
         """
         page_num = canvas.getPageNumber()
         text = f"Page {page_num}"
-        canvas.setFont('HeiseiMin-W3', 9)
+        canvas.setFont(self._font, 9)
         # 下部中央に配置
         canvas.drawCentredString(A4[0] / 2.0, 15, text)
 
@@ -64,16 +64,16 @@ class PaperGenerator:
 
         # --- スタイル定義 ---
         title_style = ParagraphStyle(
-            'Title', fontName='HeiseiMin-W3', fontSize=24, leading=28, alignment=1, spaceAfter=20
+            'Title', fontName=self._font, fontSize=24, leading=28, alignment=1, spaceAfter=20
         )
         abstract_style = ParagraphStyle(
-            'Abstract', fontName='HeiseiMin-W3', fontSize=10, leading=14, spaceAfter=20
+            'Abstract', fontName=self._font, fontSize=10, leading=14, spaceAfter=20
         )
         body_style = ParagraphStyle(
-            'Body', fontName='HeiseiMin-W3', fontSize=12, leading=14
+            'Body', fontName=self._font, fontSize=12, leading=14
         )
         reference_style = ParagraphStyle(
-            'Reference', fontName='HeiseiMin-W3', fontSize=9, leading=11
+            'Reference', fontName=self._font, fontSize=9, leading=11
         )
 
         doc = BaseDocTemplate(path, pagesize=A4)
