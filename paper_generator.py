@@ -86,25 +86,38 @@ class PaperGenerator:
     def run(self, path: str):
         pdfmetrics.registerFont(UnicodeCIDFont(self._font))
 
-        # --- スタイル定義 ---
-        title_style = ParagraphStyle(
-            'Title', fontName=self._font, fontSize=24, leading=28, alignment=1, spaceAfter=20
-        )
-        sub_title_style = ParagraphStyle(
-            'SubTitle', fontName=self._font, fontSize=20, leading=28, alignment=1, spaceAfter=20
+        doc = BaseDocTemplate(path, pagesize=A4)
+
+        doc = self._setup_template(doc)
+
+        story = []
+
+        story = self._add_title(story)
+
+        story.append(NextPageTemplate('BodyPages'))
+        story.append(PageBreak())
+
+        story = self._add_body(story)
+
+        story.append(NextPageTemplate('References'))
+        story.append(PageBreak())
+
+        story = self._add_reference(story)
+
+        doc.build(story)
+
+    def _add_reference(self, story):
+        reference_style = ParagraphStyle(
+            'Reference', fontName=self._font, fontSize=9, leading=11
         )
 
-        authors_style = ParagraphStyle(
-            'Authors', fontName=self._font, fontSize=12, leading=14, alignment=1, spaceAfter=5
-        )
+        # 最後のページ：引用文献
+        if len(self._refs) > 0:
+            for i in range(len(self._refs)):
+                story.append(Paragraph(f'{i + 1}. {self._refs[i]}', reference_style))
+        return story
 
-
-        abstract_title_style = ParagraphStyle(
-            'Abstract', fontName=self._font, fontSize=14, leading=16, spaceAfter=20, alignment=1, leftIndent=80, rightIndent=80
-        )
-        abstract_body_style = ParagraphStyle(
-            'Abstract', fontName=self._font, fontSize=10, leading=12, alignment=1, leftIndent=80, rightIndent=80
-        )
+    def _add_body(self, story):
         body_style = ParagraphStyle(
             'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
         )
@@ -120,18 +133,21 @@ class PaperGenerator:
             ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10), 
         ]
 
-        reference_style = ParagraphStyle(
-            'Reference', fontName=self._font, fontSize=9, leading=11
-        )
+        # 本文（1ページ目下部2段組から開始）
+        for main_text in self._main_texts:
+            if main_text.rank < 0 or main_text.rank >= len(chapter_styles):
+                story.append(Paragraph(main_text.text, body_style))
+            else:
+                story.append(Paragraph(main_text.text, chapter_styles[main_text.rank]))
+        return story
 
-        doc = BaseDocTemplate(path, pagesize=A4)
-
+    def _setup_template(self, doc):
         page_width, page_height = A4
         margin = 40
         gap = 20
 
         # -----------------------
-        # 1ページ目：上部1カラム + 下部2カラム
+        # 表紙
         # -----------------------
         top_ypos = A4[1] * 0.2
         top_height = A4[1] * 0.3
@@ -167,9 +183,31 @@ class PaperGenerator:
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
         doc.addPageTemplates([template_first, template_body, template_refs])
+        return doc
 
-        story = []
+
+    def _add_title(self, story):
         # タイトル
+        # --- スタイル定義 ---
+        title_style = ParagraphStyle(
+            'Title', fontName=self._font, fontSize=24, leading=28, alignment=1, spaceAfter=20
+        )
+        sub_title_style = ParagraphStyle(
+            'SubTitle', fontName=self._font, fontSize=20, leading=28, alignment=1, spaceAfter=20
+        )
+
+        authors_style = ParagraphStyle(
+            'Authors', fontName=self._font, fontSize=12, leading=14, alignment=1, spaceAfter=5
+        )
+
+
+        abstract_title_style = ParagraphStyle(
+            'Abstract', fontName=self._font, fontSize=14, leading=16, spaceAfter=20, alignment=1, leftIndent=80, rightIndent=80
+        )
+        abstract_body_style = ParagraphStyle(
+            'Abstract', fontName=self._font, fontSize=10, leading=12, alignment=1, leftIndent=80, rightIndent=80
+        )
+
         story.append(NextPageTemplate('FirstPage'))
 
         story.append(Paragraph(self._title, title_style))
@@ -183,26 +221,7 @@ class PaperGenerator:
         
         story.append(Paragraph('要旨', abstract_title_style))
         story.append(Paragraph(self._abstract, abstract_body_style))
-        story.append(NextPageTemplate('BodyPages'))
-        story.append(PageBreak())
-
-
-        # 本文（1ページ目下部2段組から開始）
-        for main_text in self._main_texts:
-            if main_text.rank < 0 or main_text.rank >= len(chapter_styles):
-                story.append(Paragraph(main_text.text, body_style))
-            else:
-                story.append(Paragraph(main_text.text, chapter_styles[main_text.rank]))
-
-        if len(self._refs) > 0:
-            # 最後のページ：引用文献
-            story.append(NextPageTemplate('References'))
-            story.append(PageBreak())
-
-            for i in range(len(self._refs)):
-                story.append(Paragraph(f'{i + 1}. {self._refs[i]}', reference_style))
-
-        doc.build(story)
+        return story
 
 
 if __name__ == '__main__':
