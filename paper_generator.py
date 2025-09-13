@@ -70,7 +70,7 @@ class PaperGenerator:
             'Abstract', fontName=self._font, fontSize=8, leading=10, spaceAfter=20, alignment=1, leftIndent=80, rightIndent=80
         )
         body_style = ParagraphStyle(
-            'Body', fontName=self._font, fontSize=12, leading=14
+            'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
         )
         reference_style = ParagraphStyle(
             'Reference', fontName=self._font, fontSize=9, leading=11
