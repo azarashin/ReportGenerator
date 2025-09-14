@@ -61,7 +61,7 @@ class MyDocTemplate(BaseDocTemplate):
                 self.notify('TOCEntry', (7, text, self.page))
 
 class PaperGenerator:
-    def __init__(self, font='HeiseiMin-W3'):
+    def __init__(self, font='HeiseiMin-W3', path_to_font=None):
         self._font = font
         self._title = 'NO TITLE...'
         self._sub_title = None
@@ -86,7 +86,11 @@ class PaperGenerator:
             ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=7), 
         ]
 
-        pdfmetrics.registerFont(UnicodeCIDFont(self._font))
+        if path_to_font:
+            pdfmetrics.registerFont(TTFont(self._font, path_to_font))
+        else:
+            pdfmetrics.registerFont(UnicodeCIDFont(self._font))
+        
 
 
 
@@ -307,7 +311,7 @@ class PaperGenerator:
 
 if __name__ == '__main__':
     path="sample_paper_with_pagenum.pdf"
-    pg = PaperGenerator()
+    pg = PaperGenerator('ShipporiMincho', './Shippori_Mincho/ShipporiMincho-Regular.ttf')
     # Abstract
     abstract_text = (
         "ここに論文の概要(Abstract)を記載します。"
