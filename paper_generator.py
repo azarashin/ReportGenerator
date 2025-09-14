@@ -1,6 +1,6 @@
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer,
-    NextPageTemplate, PageBreak, FrameBreak, Image
+    NextPageTemplate, PageBreak, FrameBreak, Image, TableStyle, Table
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -9,6 +9,9 @@ from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.lib.enums import TA_CENTER
+from reportlab.lib import colors
+from reportlab.platypus import LongTable
+from decimal import Decimal, InvalidOperation
 
 class Author:
     def __init__(self, name: str, organization: str):
@@ -69,6 +72,7 @@ class PaperGenerator:
         self._contents = []
         self._refs = []
         self._images = {}
+        self._tables = {}
         self._double_colmuns = False
         self._chapter_numbers = [0, 0, 0, 0, 0, 0, 0, 0]
         self._body_style = ParagraphStyle(
@@ -77,6 +81,16 @@ class PaperGenerator:
 
         self._image_description_style = ParagraphStyle(
             'ImageDescription', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=25, alignment=1, 
+        )
+
+        self._table_description_style = ParagraphStyle(
+            'TableDescription', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=25, alignment=1, 
+        )
+        self._table_number_style = ParagraphStyle(
+            'Body', fontName=self._font, fontSize=9, leading=11, spaceAfter=5, alignment=2
+        )
+        self._table_string_style = ParagraphStyle(
+            'Body', fontName=self._font, fontSize=9, leading=11, spaceAfter=5, alignment=0
         )
 
         self._chapter_styles = [
@@ -112,6 +126,46 @@ class PaperGenerator:
 
     def set_abstract(self, abstract: str):
         self._abstract = abstract
+
+    def add_table(self, data: list, title: str):
+        if len(data) == 0:
+            return
+        # Table オブジェクト生成
+        data = self._transpose(data)
+        for line in data:
+            quant = self._get_quantize(line[1:])
+            line[0] = self._get_table_value(line[0], 0)
+            line[1:] = [self._get_table_value(d, quant) for d in line[1:]]
+        data = self._transpose(data)
+
+        table = LongTable(data)  # 列幅をpt単位で指定（省略可）
+
+        # スタイル設定
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),   # 1行目背景色
+            ('TEXTCOLOR',  (0,0), (-1,0), colors.black),       # 1行目文字色
+            ('ALIGN',      (0,0), (-1,-1), 'CENTER'),          # 全セル中央寄せ
+            ('GRID',       (0,0), (-1,-1), 0.5, colors.grey),  # 枠線
+            ('FONTNAME',   (0,0), (-1,0), self._font),   # 1行目フォント太字
+            ('BOTTOMPADDING', (0,0), (-1,0), 8),               # 1行目下余白
+        ]))
+
+        index = len(self._tables) + 1
+        self._contents.append(Paragraph(f'表{index}. {title}', self._table_description_style))
+        self._contents.append(table)
+        if title in self._tables:
+            print(f'{title} is already registed.')
+        else:
+            self._tables[title] = index
+
+        
+
+    def _get_table_value(self, value: any, quant: int):
+        if type(value) is int and quant >= 1:
+            return Paragraph(str(value), self._table_number_style)
+        if type(value) is float or type(value) is int:
+            return Paragraph(f"{Decimal(value).quantize(quant):f}", self._table_number_style)
+        return Paragraph(value, self._table_string_style)
 
     def add_image(self, path: str, title: str):
         # 画像を挿入
@@ -327,6 +381,50 @@ class PaperGenerator:
         story.append(Paragraph(self._abstract, abstract_body_style))
         return story
 
+    def _transpose(self, matrix):
+        """
+        2次元リスト matrix の行と列を入れ替えた新しいリストを返す
+        """
+        # zip(*matrix) はタプルを返すので list に変換
+        return [list(row) for row in zip(*matrix)]
+
+    '''
+    量子化(quantize)する単位を調べる。
+    例：
+    [12, 2.3, 0.03] => 0.01
+    '''
+    def _get_quantize(self, values, digits=None):
+        """
+        values: 数値 or 文字列のリスト（例: [1, 2.3, '4.567']）
+        digits: そろえる小数桁数。Noneなら入力の中で最大の小数桁数に自動合わせ
+
+        戻り値: 小数部の桁数をそろえた文字列リスト
+        """
+        decs = []
+        max_frac = 0
+
+        # 1) Decimal化 & 最大小数桁数の決定
+        for v in values:
+            # 文字列化してからDecimalに渡すと見た目どおりの桁が保てます
+            s = str(v)
+            try:
+                d = Decimal(s)
+            except InvalidOperation:
+                # NaN/INFなどや数値でない場合はそのまま返すために保持
+                decs.append(s)
+                continue
+
+            decs.append(d)
+            if d.is_finite():
+                # 小数桁数 = 負のexponentの絶対値
+                frac = -d.as_tuple().exponent if d.as_tuple().exponent < 0 else 0
+                if frac > max_frac:
+                    max_frac = frac
+
+        # 2) そろえる桁数を決定
+        scale = max_frac if digits is None else int(digits)
+        quant = Decimal(1).scaleb(-scale)  # 10**(-scale)
+        return quant
 
 if __name__ == '__main__':
     path="sample_paper_with_pagenum.pdf"
@@ -397,6 +495,12 @@ if __name__ == '__main__':
     pg.add_chapter("チャプターCBA", 3)
     pg.add_chapter("チャプターCBAA", 4)
     pg.add_image('./image/sample.jpg', 'サンプル画像')
+    pg.add_table([
+        ["実数", "整数", "文字列"],
+        [12, 100, "説明A"],
+        [1.1, 200, "説明B"],
+        [0.02, 300, "説明C"]
+    ], '表サンプル')
 
 
     pg.add_ref("Smith J.", "ReportLab Documentation", 2023)
