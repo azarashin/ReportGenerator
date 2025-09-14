@@ -13,6 +13,8 @@ from reportlab.lib import colors
 from reportlab.platypus import LongTable
 from decimal import Decimal, InvalidOperation
 
+from paper_generator_interface import PaperGeneratorInterface
+
 class Author:
     def __init__(self, name: str, organization: str):
         self.name = name
@@ -62,7 +64,7 @@ class MyDocTemplate(BaseDocTemplate):
             if style == 'CapterRank8':
                 self.notify('TOCEntry', (7, text, self.page))
 
-class PaperGenerator:
+class PaperGenerator(PaperGeneratorInterface):
     def __init__(self, font='HeiseiMin-W3', path_to_font=None):
         self._font = font
         self._title = 'NO TITLE...'
