@@ -63,7 +63,19 @@ class MyDocTemplate(BaseDocTemplate):
                 self.notify('TOCEntry', (7, text, self.page))
 
 class PaperGenerator:
-    def __init__(self, font='HeiseiMin-W3', path_to_font=None):
+    def __init__(self, font='HeiseiMin-W3', path_to_font=None, foootnote = False):
+        self._foootnote = foootnote
+        if foootnote:
+            self._footnote_height = 0
+            self._footnote_bottom = 0
+        else:
+            self._footnote_height = 80
+            self._footnote_bottom = 20
+
+        self._margin = 40
+        self._gap = 20
+
+        
         self._font = font
         self._title = 'NO TITLE...'
         self._sub_title = None
@@ -73,6 +85,7 @@ class PaperGenerator:
         self._refs = []
         self._images = {}
         self._tables = {}
+        self._footnotes = {}
         self._double_colmuns = False
         self._chapter_numbers = [0, 0, 0, 0, 0, 0, 0, 0]
         self._body_style = ParagraphStyle(
@@ -210,6 +223,24 @@ class PaperGenerator:
         # 下部中央に配置
         canvas.drawCentredString(A4[0] / 2.0, 15, text)
 
+    # --- ページ番号を描画する関数 ---
+    def add_footnote(self, canvas, doc):
+
+        canvas.saveState()
+        canvas.setFont(self._font, 9)
+        # ページ幅を取得
+        page_width, _ = A4
+
+        # 横線のY座標（脚注テキストより少し上）
+        line_y = self._footnote_height + self._margin
+        canvas.setStrokeColor(colors.grey)
+        canvas.setLineWidth(0.5)
+        canvas.line(40, line_y, page_width - 40, line_y)
+
+        # 横線の下に脚注テキスト
+        canvas.drawString(40, line_y, "XX<super>1</super> これはサンプルの脚注です。")
+        canvas.restoreState()
+
     def run(self, path: str):
 
         doc = MyDocTemplate(path, pagesize=A4)
@@ -225,13 +256,14 @@ class PaperGenerator:
         story = self._add_table_of_contents(story)
 
         if self._double_colmuns:
-            story.append(NextPageTemplate('BodyPagesInDoubleColumn'))
+            body_template = 'BodyPagesInDoubleColumn'
         else:
-            story.append(NextPageTemplate('BodyPagesInSingleColumn'))
+            body_template = 'BodyPagesInSingleColumn'
+        story.append(NextPageTemplate(body_template))
 
         story.append(PageBreak())
 
-        story = self._add_body(story)
+        story = self._add_body(story, body_template)
 
         story.append(NextPageTemplate('References'))
         story.append(PageBreak())
@@ -272,17 +304,29 @@ class PaperGenerator:
                 story.append(Paragraph(f'{i + 1}. {self._refs[i]}', reference_style))
         return story
 
-    def _add_body(self, story):
+    def _add_body(self, story, body_template):
 
         # 本文（1ページ目下部2段組から開始）
         for content in self._contents:
             story.append(content)
+            if content in self._footnotes:
+                story.append(NextPageTemplate('Footer'))
+                story.append(FrameBreak())
+                story.append(self._footnotes[content])
+                story.append(NextPageTemplate(body_template))
+                story.append(FrameBreak())
+            story.append(NextPageTemplate('Footer'))
+            story.append(FrameBreak())
+            story.append(Paragraph('hoge'))
+            story.append(NextPageTemplate(body_template))
+            story.append(FrameBreak())
+
         return story
 
     def _setup_template(self, doc):
         page_width, page_height = A4
-        margin = 40
-        gap = 20
+        margin = self._margin
+        gap = self._gap
 
         # -----------------------
         # 表紙
@@ -314,23 +358,32 @@ class PaperGenerator:
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
         # -----------------------
+        # フッター
+        # -----------------------
+        footnote_total_height = self._footnote_height + self._footnote_bottom
+        frame_width_footnote = (page_width - 2*margin - gap)
+        frame_footnote = Frame(margin, margin + self._footnote_bottom, frame_width_footnote, page_height - 2*margin - self._footnote_height, id='all_footer')
+
+        # -----------------------
         # 2ページ目以降：1カラム本文
         # -----------------------
         frame_width_in_single = (page_width - 2*margin - gap)
-        frame_all_in_single = Frame(margin, margin, frame_width_in_single, page_height - 2*margin, id='all_in_single')
+        frame_all_in_single = Frame(margin, margin + footnote_total_height, frame_width_in_single, page_height - 2*margin - footnote_total_height, id='all_in_single')
         template_body_in_single = PageTemplate(id='BodyPagesInSingleColumn',
-                                    frames=[frame_all_in_single],
+                                    frames=[frame_all_in_single, frame_footnote],
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
         # -----------------------
         # 2ページ目以降：2カラム本文
         # -----------------------
         frame_width_in_double = (page_width - 2*margin - gap) / 2
-        frame_left_all_in_double = Frame(margin, margin, frame_width_in_double, page_height - 2*margin, id='left_all')
-        frame_right_all_in_double = Frame(margin + frame_width_in_double + gap, margin, frame_width_in_double, page_height - 2*margin, id='right_all')
+        frame_left_all_in_double = Frame(margin, margin + footnote_total_height, frame_width_in_double, page_height - 2*margin - footnote_total_height, id='left_all')
+        frame_right_all_in_double = Frame(margin + frame_width_in_double + gap, margin + footnote_total_height, frame_width_in_double, page_height - 2*margin - footnote_total_height, id='right_all')
         template_body_in_double = PageTemplate(id='BodyPagesInDoubleColumn',
-                                    frames=[frame_left_all_in_double, frame_right_all_in_double],
+                                    frames=[frame_left_all_in_double, frame_right_all_in_double, frame_footnote],
                                     onPage=self.add_page_number)   # ★ ページ番号追加
+
+
 
         # -----------------------
         # 最終ページ：引用文献
@@ -340,7 +393,7 @@ class PaperGenerator:
                                     frames=[frame_refs],
                                     onPage=self.add_page_number)   # ★ ページ番号追加
 
-        doc.addPageTemplates([template_title, template_body_in_toc, template_body_in_single, template_body_in_double, template_refs])
+        doc.addPageTemplates([template_title, template_body_in_toc, template_body_in_single, template_body_in_double, template_refs, template_footnote])
         return doc
 
 
