@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus.tableofcontents import TableOfContents
 from reportlab.lib.enums import TA_CENTER
 
@@ -28,10 +29,6 @@ class Reference:
             return f'{self.author}, {self.title}.'
         return f'{self.author}, {self.title}, {self.year}.'
 
-class MainText:
-    def __init__(self, rank: int, text: str):
-        self.rank = rank
-        self.text = text
 
 class MyDocTemplate(BaseDocTemplate):
 
@@ -70,12 +67,28 @@ class PaperGenerator:
         self._sub_title = None
         self._authors = []
         self._abstract = 'no abstract...'
-        self._main_texts = []
+        self._contents = []
         self._refs = []
         self._double_colmuns = False
         self._chapter_numbers = [0, 0, 0, 0, 0, 0, 0, 0]
+        self._body_style = ParagraphStyle(
+            'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
+        )
 
-        # --- 日本語フォント登録 ---
+        self._chapter_styles = [
+            ParagraphStyle('CapterRank1', fontName=self._font, fontSize=15, leading=17, spaceBefore=10, spaceAfter=5, leftIndent=10, outlineLevel=0), 
+            ParagraphStyle('CapterRank2', fontName=self._font, fontSize=14, leading=16, spaceBefore=9, spaceAfter=5, leftIndent=10, outlineLevel=1), 
+            ParagraphStyle('CapterRank3', fontName=self._font, fontSize=13, leading=15, spaceBefore=8, spaceAfter=5, leftIndent=10, outlineLevel=2), 
+            ParagraphStyle('CapterRank4', fontName=self._font, fontSize=12, leading=14, spaceBefore=7, spaceAfter=5, leftIndent=10, outlineLevel=3), 
+            ParagraphStyle('CapterRank5', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=4), 
+            ParagraphStyle('CapterRank6', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=5), 
+            ParagraphStyle('CapterRank7', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=6), 
+            ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=7), 
+        ]
+
+        pdfmetrics.registerFont(UnicodeCIDFont(self._font))
+
+
 
     def set_double_column(self, mode: bool):
         self._double_colmuns = mode
@@ -93,11 +106,12 @@ class PaperGenerator:
         self._abstract = abstract
 
     def add_sentence(self, sentence: str):
-        self._main_texts.append(MainText(-1, sentence))
+        self._contents.append(Paragraph(sentence, self._body_style))
 
     def add_chapter(self, chapter: str, chapter_rank = 0):
         self._chapter_numbers[chapter_rank] += 1
-        self._main_texts.append(MainText(chapter_rank, f'{self._get_chapter_number(chapter_rank)}. {chapter}'))
+        title = f'{self._get_chapter_number(chapter_rank)}. {chapter}'
+        self._contents.append(Paragraph(title, self._chapter_styles[chapter_rank]))
         for i in range(chapter_rank+1, len(self._chapter_numbers)):
             self._chapter_numbers[i] = 0
     
@@ -120,7 +134,6 @@ class PaperGenerator:
         canvas.drawCentredString(A4[0] / 2.0, 15, text)
 
     def run(self, path: str):
-        pdfmetrics.registerFont(UnicodeCIDFont(self._font))
 
         doc = MyDocTemplate(path, pagesize=A4)
 
@@ -183,27 +196,10 @@ class PaperGenerator:
         return story
 
     def _add_body(self, story):
-        body_style = ParagraphStyle(
-            'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
-        )
-
-        chapter_styles = [
-            ParagraphStyle('CapterRank1', fontName=self._font, fontSize=15, leading=17, spaceBefore=10, spaceAfter=5, leftIndent=10, outlineLevel=0), 
-            ParagraphStyle('CapterRank2', fontName=self._font, fontSize=14, leading=16, spaceBefore=9, spaceAfter=5, leftIndent=10, outlineLevel=1), 
-            ParagraphStyle('CapterRank3', fontName=self._font, fontSize=13, leading=15, spaceBefore=8, spaceAfter=5, leftIndent=10, outlineLevel=2), 
-            ParagraphStyle('CapterRank4', fontName=self._font, fontSize=12, leading=14, spaceBefore=7, spaceAfter=5, leftIndent=10, outlineLevel=3), 
-            ParagraphStyle('CapterRank5', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=4), 
-            ParagraphStyle('CapterRank6', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=5), 
-            ParagraphStyle('CapterRank7', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=6), 
-            ParagraphStyle('CapterRank8', fontName=self._font, fontSize=11, leading=13, spaceBefore=6, spaceAfter=5, leftIndent=10, outlineLevel=7), 
-        ]
 
         # 本文（1ページ目下部2段組から開始）
-        for main_text in self._main_texts:
-            if main_text.rank < 0 or main_text.rank >= len(chapter_styles):
-                story.append(Paragraph(main_text.text, body_style))
-            else:
-                story.append(Paragraph(main_text.text, chapter_styles[main_text.rank]))
+        for content in self._contents:
+            story.append(content)
         return story
 
     def _setup_template(self, doc):
