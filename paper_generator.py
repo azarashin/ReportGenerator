@@ -200,7 +200,7 @@ class PaperGenerator:
         self._refs.append(Reference(author, title, year))
 
     # --- ページ番号を描画する関数 ---
-    def add_page_number(self, canvas, doc):
+    def _add_page_number(self, canvas, doc):
         """
         各ページ下部中央にページ番号を描画
         """
@@ -311,7 +311,7 @@ class PaperGenerator:
         frame_all_in_toc = Frame(margin, margin, frame_width_in_toc, page_height - 2*margin, id='table_of_contents')
         template_body_in_toc = PageTemplate(id='TableOfContents',
                                     frames=[frame_all_in_toc],
-                                    onPage=self.add_page_number)   # ★ ページ番号追加
+                                    onPage=self._add_page_number)   # ★ ページ番号追加
 
         # -----------------------
         # 2ページ目以降：1カラム本文
@@ -320,7 +320,7 @@ class PaperGenerator:
         frame_all_in_single = Frame(margin, margin, frame_width_in_single, page_height - 2*margin, id='all_in_single')
         template_body_in_single = PageTemplate(id='BodyPagesInSingleColumn',
                                     frames=[frame_all_in_single],
-                                    onPage=self.add_page_number)   # ★ ページ番号追加
+                                    onPage=self._add_page_number)   # ★ ページ番号追加
 
         # -----------------------
         # 2ページ目以降：2カラム本文
@@ -330,7 +330,7 @@ class PaperGenerator:
         frame_right_all_in_double = Frame(margin + frame_width_in_double + gap, margin, frame_width_in_double, page_height - 2*margin, id='right_all')
         template_body_in_double = PageTemplate(id='BodyPagesInDoubleColumn',
                                     frames=[frame_left_all_in_double, frame_right_all_in_double],
-                                    onPage=self.add_page_number)   # ★ ページ番号追加
+                                    onPage=self._add_page_number)   # ★ ページ番号追加
 
         # -----------------------
         # 最終ページ：引用文献
@@ -338,7 +338,7 @@ class PaperGenerator:
         frame_refs = Frame(margin, margin, page_width - 2*margin, page_height - 2*margin, id='refs')
         template_refs = PageTemplate(id='References',
                                     frames=[frame_refs],
-                                    onPage=self.add_page_number)   # ★ ページ番号追加
+                                    onPage=self._add_page_number)   # ★ ページ番号追加
 
         doc.addPageTemplates([template_title, template_body_in_toc, template_body_in_single, template_body_in_double, template_refs])
         return doc
