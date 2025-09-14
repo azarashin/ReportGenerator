@@ -1,6 +1,6 @@
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer,
-    NextPageTemplate, PageBreak, FrameBreak
+    NextPageTemplate, PageBreak, FrameBreak, Image
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
@@ -28,7 +28,6 @@ class Reference:
         if self.year == None:
             return f'{self.author}, {self.title}.'
         return f'{self.author}, {self.title}, {self.year}.'
-
 
 class MyDocTemplate(BaseDocTemplate):
 
@@ -69,10 +68,15 @@ class PaperGenerator:
         self._abstract = 'no abstract...'
         self._contents = []
         self._refs = []
+        self._images = {}
         self._double_colmuns = False
         self._chapter_numbers = [0, 0, 0, 0, 0, 0, 0, 0]
         self._body_style = ParagraphStyle(
             'Body', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=5
+        )
+
+        self._image_description_style = ParagraphStyle(
+            'ImageDescription', fontName=self._font, fontSize=10.5, leading=11, spaceAfter=25, alignment=1, 
         )
 
         self._chapter_styles = [
@@ -108,6 +112,21 @@ class PaperGenerator:
 
     def set_abstract(self, abstract: str):
         self._abstract = abstract
+
+    def add_image(self, path: str, title: str):
+        # 画像を挿入
+        img = Image(path, width=200, height=150)   # 幅・高さをpt単位で指定
+        self._contents.append(img)
+
+        # 画像の下にテキスト
+        index = len(self._images) + 1
+        self._contents.append(Spacer(1, 12))        
+        self._contents.append(Paragraph(f'図 {index}. {title}', self._image_description_style))
+        if title in self._images:
+            print(f'{title} is already registed.')
+        else:
+            self._images[title] = index
+            
 
     def add_sentence(self, sentence: str):
         self._contents.append(Paragraph(sentence, self._body_style))
@@ -377,6 +396,7 @@ if __name__ == '__main__':
     pg.add_chapter("チャプターCB", 2)
     pg.add_chapter("チャプターCBA", 3)
     pg.add_chapter("チャプターCBAA", 4)
+    pg.add_image('./image/sample.jpg', 'サンプル画像')
 
 
     pg.add_ref("Smith J.", "ReportLab Documentation", 2023)
